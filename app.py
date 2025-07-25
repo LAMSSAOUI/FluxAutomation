@@ -282,9 +282,62 @@ if delivery_file:
 
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # Write sheets
             last_week_df.to_excel(writer, index=False, sheet_name='LastWeek')
             speedi_df_organized.to_excel(writer, index=False, sheet_name='CurrentWeek')
             Flux_Calc_df.to_excel(writer, index=False, sheet_name='Fluctuation (pcs)')
+
+            workbook  = writer.book
+
+            # Header format: gray background, bold
+            header_format = workbook.add_format({'bold': True, 'bg_color': '#B7B7B7', 'font_color': 'black'})
+
+            # Week value formats
+            yellow_bold = workbook.add_format({'bg_color': '#FFFF00', 'bold': True})
+            yellow_light = workbook.add_format({'bg_color': '#FFFACD'})  # LemonChiffon (light yellow)
+
+            # Sheet tab colors (choose your own)
+            tab_colors = {
+                'LastWeek': '#B7B7B7',         # Gray
+                'CurrentWeek': '#A9D08E',      # Light green
+                'Fluctuation (pcs)': '#FFD966' # Light yellow
+            }
+
+            # Apply header style and tab color to all sheets
+            for sheet_name, tab_color in tab_colors.items():
+                worksheet = writer.sheets[sheet_name]
+                # Set tab color
+                worksheet.set_tab_color(tab_color)
+                # Write headers with style
+                columns = (
+                    Flux_Calc_df.columns if sheet_name == 'Fluctuation (pcs)' else
+                    last_week_df.columns if sheet_name == 'LastWeek' else
+                    speedi_df_organized.columns
+                )
+                for col_num, value in enumerate(columns):
+                    worksheet.write(0, col_num, value, header_format)
+
+            # Conditional formatting for week columns in Fluctuation (pcs)
+            fluct_ws = writer.sheets['Fluctuation (pcs)']
+            start_row = 1  # 0-based, so 1 is first data row
+            end_row = len(Flux_Calc_df)
+            for col in weeks_to_process:
+                col_idx = Flux_Calc_df.columns.get_loc(col)
+                # >0: yellow bold
+                fluct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                    'type': 'cell',
+                    'criteria': '>',
+                    'value': 0,
+                    'format': yellow_bold
+                })
+                # <0: light yellow
+                fluct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                    'type': 'cell',
+                    'criteria': '<',
+                    'value': 0,
+                    'format': yellow_light
+                })
+
         output.seek(0)
 
         st.download_button(
