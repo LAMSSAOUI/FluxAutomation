@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 import re
+import pip
+pip.main(["install", "openpyxl"])
+
 
 st.title("📊 Fluctuation Analysis Dashboard")
 
