@@ -203,69 +203,45 @@ if delivery_file:
 
         week_columns = [col for col in speedi_df_organized.columns if col.startswith('wk ')]
 
-        # 2. Sort week columns numerically by their week number
-        # week_columns = sorted(week_columns, key=lambda x: int(x.split(' ')[1]))
-
-        # 3. Show only these weeks in the selectbox — no repeats, no extras
         selected_week = st.selectbox("Select starting week", week_columns)
 
-        # Now selected_week will always be one of the actual columns from your data.
 
-        # 4. Use selected_week to filter or calculate differences:
-        #    For example, select all weeks >= selected_week
-        # start_index = week_columns.index(selected_week)
-        # selected_weeks_range = week_columns[start_index:]
-        # # Step 2: Select the week from Streamlit dropdown
-        # # selected_week = st.selectbox("Select a starting week", week_columns)
+# Deficit Calculation
+        # selected_week_idx = week_columns.index(selected_week)
+        #  # Weeks between last week and selected week (exclusive)
+        # demand_weeks = week_columns[:selected_week_idx]  # weeks before selected_week
 
-        # # Step 3: Find index of selected week in the sorted list
-        # # start_idx = week_columns.index(selected_week)
+        # # Calculate sum of demand for each material between last week and selected week
+        # speedi_demand_sum = speedi_df_organized.set_index('Material')[demand_weeks].sum(axis=1) if demand_weeks else pd.Series(0, index=speedi_df_organized['Material'])
 
-        # # Step 4: Define the weeks range from selected week to the end
-        # # selected_weeks_range = week_columns[start_idx:]
+        # # Map current week and last week deficit for each material
+        # current_week_vals = speedi_df_organized.set_index('Material')[selected_week]
+        # last_week_deficit_vals = last_week_df.set_index('Material')[selected_week]
 
-        # # Step 5: Prepare last_week_df and speedi_df_organized for the operation
-        # # Make sure 'Material' columns are string and stripped
-        # # Make sure 'Material' columns are string and stripped (to align keys correctly)
-        # last_week_df['Material'] = last_week_df['Material'].astype(str).str.strip()
-        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str).str.strip()
-
-        # # selected_weeks_range is a list of columns starting from selected_week, e.g. ['wk31', 'wk32', 'wk33', ...]
-        # # Make sure you have it sorted and filtered as needed before this step
-
-        # # Set index on 'Material' for alignment and slicing only selected weeks
-        # last_week_weeks = last_week_df.set_index('Material')[selected_weeks_range]
-        # speedi_weeks = speedi_df_organized.set_index('Material')[selected_weeks_range]
-
-        # # Calculate difference for every material and week
-        # # This subtracts speedi data from last_week data
-        # diff_weeks = last_week_weeks.subtract(speedi_weeks, fill_value=0)
-
-        # Find the starting index of the selected week
-        # Step 3: Weeks to process from selected week onward
+        # st.markdown("### current_week_vals")
+        # st.dataframe(current_week_vals)
+        # st.markdown("### last_week_deficit_vals")
+        # st.dataframe(last_week_deficit_vals)
+       
         start_idx = week_columns.index(selected_week)
         weeks_to_process = week_columns[start_idx:]
 
-        # st.markdown("### weeks_to_process")
-        # st.dataframe(weeks_to_process)
-        # Ensure 'Material' columns are clean and set as index for both DataFrames
+   
         last_week_df['Material'] = last_week_df['Material'].apply(clean_material_id)
         speedi_df_organized['Material'] = speedi_df_organized['Material'].apply(clean_material_id)
 
         last_week_indexed = last_week_df.set_index('Material')
         speedi_indexed = speedi_df_organized.set_index('Material')
 
-        # Only keep the weeks_to_process columns (plus 'Material' as index)
+   
         last_week_weeks = last_week_indexed[weeks_to_process]
         speedi_weeks = speedi_indexed[weeks_to_process]
 
-        # Align indexes (materials) for subtraction
-        last_week_weeks, speedi_weeks = last_week_weeks.align(speedi_weeks, join='outer', fill_value=0)
 
-        # Calculate the difference: (speedi - last_week) for each material and week
+        last_week_weeks, speedi_weeks = last_week_weeks.align(speedi_weeks, join='outer', fill_value=0)
+      
         diff_weeks = speedi_weeks.subtract(last_week_weeks, fill_value=0)
 
-        # Reset index to bring 'Material' back as a column
         diff_weeks = diff_weeks.reset_index()
 
         Flux_Calc_df = Flux_Calc_df.merge(
