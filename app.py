@@ -28,6 +28,19 @@ def rename_quantity_week_columns(df):
     df.columns = new_cols
     return df
 
+def clean_material_id(x):
+    try:
+        # Convert to float first (to handle '123.0')
+        f = float(x)
+        # Convert to int if no decimal part, then to string
+        if f.is_integer():
+            return str(int(f))
+        else:
+            return str(f)
+    except:
+        # If conversion fails (e.g., already string), just strip and return
+        return str(x).strip()
+
 # --- Upload and select two sheets from Fluctuation Report
 st.subheader("📁 Upload Fluctuation Report Workbook (with two sheets)")
 fluct_file = st.file_uploader("Upload Fluctuation Report Excel", type=["xlsx"])
@@ -113,11 +126,7 @@ if speedi_file:
         # # Merge into speedi_df based on 'Material'
         speedi_df_organized = speedi_df_reordered.merge(copy_from_last, on='Material', how='left')
 
-        # st.markdown("### ✅ speedi_df_organized")
-        # st.dataframe(speedi_df_organized.head())
 
-        # # Now reorder columns so 'Project' comes right after 'Material'
-        # # Start with these 4 columns in the desired order:
         ordered_cols = ['Sales document', 'Name sold-to party', 'Material', 'Project']
 
         # # Then add other columns from speedi_df that are NOT in the above list
@@ -133,7 +142,9 @@ if speedi_file:
 
         st.markdown("### ✅ SPEEDI Data Organized (Matching Last Week on Top)")
         st.dataframe(speedi_df_organized.head())
-        # add the first colunms project 
+
+        # Get the delevery and prepare the data 
+
 
 delivery_file = st.file_uploader("Upload Delivery Extraction Excel", type=["xlsx"])
 if delivery_file:
@@ -142,4 +153,51 @@ if delivery_file:
     delivery_df = clean_headers(pd.read_excel(xls, sheet_name=selected_sheet))
     st.markdown("### 🚚 Delivery Data Preview")
     st.dataframe(delivery_df.head())
+
+    columns_to_drop = [
+        'Material description', 'Batch', 'Plant', 'Storage location',
+        'Movement type', 'Movement Type Text', 'Material Document', 'Material Doc.Item', 'Special Stock', 'Unit of Entry', 'Amt.in Loc.Cur.',
+        'Posting Date', 'Document Date', 'Cost Center', 'Order', 'Purchase order', 'Sales order', 'Customer', 'Supplier', 'Reference', 'User Name', 'Entry Date', 'Time of Entry'
+    ]
+
+    delivery_df.drop(
+        columns=[col for col in delivery_df.columns if col in columns_to_drop],
+        inplace=True
+    )
+    delivery_df['Qty in unit of entry'] = delivery_df['Qty in unit of entry'].abs()
+    st.write(f"Number of rows before : {len(delivery_df)}")
+    delivery_df = delivery_df.groupby('Material', as_index=False).agg({
+        'Qty in unit of entry': 'sum',
+    })
+    st.write(f"Number of rows after : {len(delivery_df)}")
+    st.markdown("### ⚙️ delivery_df Data Prepared")
+    st.dataframe(delivery_df.head())
+    if delivery_df is not None and speedi_df_organized is not None:
+
+        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str)
+        # delivery_df['Material'] = delivery_df['Material'].astype(str)
+
+        speedi_df_organized['Material'] = speedi_df_organized['Material'].apply(clean_material_id)
+        delivery_df['Material'] = delivery_df['Material'].apply(clean_material_id)
+        # Create a DataFrame with all materials in the order of speedi_df_organized
+        Flux_Calc_df = speedi_df_organized[['Material']].copy()
+
+        # Merge delivery quantities onto this DataFrame
+        Flux_Calc_df = Flux_Calc_df.merge(
+            delivery_df[['Material', 'Qty in unit of entry']],
+            on='Material',
+            how='left'
+        )
+
+        # Fill missing delivery quantities with 0
+        Flux_Calc_df['Qty in unit of entry'] = Flux_Calc_df['Qty in unit of entry'].fillna(0)
+
+        st.markdown("### 📦 Delivery Quantities in SPEEDI Order")
+        st.dataframe(Flux_Calc_df)
+
+        
+
+        # # Optionally, update speedi_df_organized to include this delivery qty column
+        # speedi_df_organized['Delivery Qty'] = Flux_Calc_df['Qty in unit of entry'].values
+
 
