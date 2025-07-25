@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import io
 import re
-import pip
-pip.main(["install", "openpyxl"])
 
 
 st.title("📊 Fluctuation Analysis Dashboard")
@@ -50,7 +48,7 @@ fluct_file = st.file_uploader("Upload Fluctuation Report Excel", type=["xlsx"])
 
 if fluct_file:
     fluct_xls = pd.ExcelFile(fluct_file)
-    st.write("Sheets found:", fluct_xls.sheet_names)
+    # st.write("Sheets found:", fluct_xls.sheet_names)
 
     # Select 2 sheets
     last_week_sheet_name = st.selectbox("Select sheet for last week's data", fluct_xls.sheet_names, key="last_week")
@@ -79,9 +77,9 @@ if speedi_file:
     xls = pd.ExcelFile(speedi_file)
     selected_sheet = st.selectbox("Select sheet from SPEEDI file", xls.sheet_names, key="speedi_sheet")
     speedi_df = clean_headers(pd.read_excel(xls, sheet_name=selected_sheet))
-    st.markdown("### ⚙️ SPEEDI Data Preview")
-    st.dataframe(speedi_df.head())
-    st.markdown("### ⚙️ SPEEDI Data Preparation")
+    # st.markdown("### ⚙️ SPEEDI Data Preview")
+    # st.dataframe(speedi_df.head())
+    # st.markdown("### ⚙️ SPEEDI Data Preparation")
     columns_to_drop = [
         'Show demands', 'Sales document', 'Item (SD)', 'sales document type',
         'Material type', 'Customer Material', 'Sold-To Party', 'Net price', 'Currency Key', 'Name sold-to party'
@@ -91,8 +89,8 @@ if speedi_file:
         columns=[col for col in speedi_df.columns if col in columns_to_drop or 'Sales' in col],
         inplace=True
     )
-    st.markdown("### ⚙️ SPEEDI Data Prepared")
-    st.dataframe(speedi_df.head())
+    # st.markdown("### ⚙️ SPEEDI Data Prepared")
+    # st.dataframe(speedi_df.head())
 
     if last_week_df is not None and 'Material' in last_week_df.columns and 'Material' in speedi_df.columns:
         # Strip spaces and ensure same data type
@@ -115,8 +113,8 @@ if speedi_file:
         speedi_df_reordered = pd.concat([speedi_matched, materials_only_in_speedi], ignore_index=True)
 
         # Preview
-        st.markdown("### ✅ SPEEDI Data Sorted (Matching Last Week on Top)")
-        st.dataframe(speedi_df_reordered.head())
+        # st.markdown("### ✅ SPEEDI Data Sorted (Matching Last Week on Top)")
+        # st.dataframe(speedi_df_reordered.head())
 
 
         columns_to_copy = ['Sales document', 'Name sold-to party', 'Project', 'Material']
@@ -154,8 +152,8 @@ if delivery_file:
     xls = pd.ExcelFile(delivery_file)
     selected_sheet = st.selectbox("Select sheet from Delivery file", xls.sheet_names, key="delivery_sheet")
     delivery_df = clean_headers(pd.read_excel(xls, sheet_name=selected_sheet))
-    st.markdown("### 🚚 Delivery Data Preview")
-    st.dataframe(delivery_df.head())
+    # st.markdown("### 🚚 Delivery Data Preview")
+    # st.dataframe(delivery_df.head())
 
     columns_to_drop = [
         'Material description', 'Batch', 'Plant', 'Storage location',
@@ -173,8 +171,8 @@ if delivery_file:
         'Qty in unit of entry': 'sum',
     })
     st.write(f"Number of rows after : {len(delivery_df)}")
-    st.markdown("### ⚙️ delivery_df Data Prepared")
-    st.dataframe(delivery_df.head())
+    # st.markdown("### ⚙️ delivery_df Data Prepared")
+    # st.dataframe(delivery_df.head())
     if delivery_df is not None and speedi_df_organized is not None:
         # Clean material IDs on both dataframes (your existing helper)
         speedi_df_organized['Material'] = speedi_df_organized['Material'].apply(clean_material_id)
@@ -200,8 +198,8 @@ if delivery_file:
         final_cols = ordered_cols + ['Qty in unit of entry']
         Flux_Calc_df = Flux_Calc_df[final_cols]
 
-        st.markdown("### 📦 Delivery Quantities in SPEEDI Order with Metadata")
-        st.dataframe(Flux_Calc_df)
+        # st.markdown("### 📦 Delivery Quantities in SPEEDI Order with Metadata")
+        # st.dataframe(Flux_Calc_df)
 
 
         week_columns = [col for col in speedi_df_organized.columns if col.startswith('wk ')]
@@ -256,7 +254,7 @@ if delivery_file:
         # Optional: Fill NaN in new week columns with 0
         Flux_Calc_df[weeks_to_process] = Flux_Calc_df[weeks_to_process].fillna(0)
 
-        st.markdown("### 📊 Flux_Calc_df with Weekly Differences")
+        st.markdown("### 📊 Fluctuation File")
         st.dataframe(Flux_Calc_df)
 
         output = io.BytesIO()
