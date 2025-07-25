@@ -1,12 +1,31 @@
 import streamlit as st
 import pandas as pd
 import io
+import re
 
 st.title("📊 Fluctuation Analysis Dashboard")
 
 # Helper function to clean column headers
 def clean_headers(df):
     df.columns = df.columns.str.strip()
+    return df
+
+
+def rename_quantity_week_columns(df):
+    new_cols = []
+    for col in df.columns:
+        # Check if column contains 'Quantity' and a week/year pattern like 31/2025 or 31/2026
+        if 'Quantity' in col:
+            match = re.search(r'(\d{1,2})/\d{4}', col)  # Extract week number before slash and 4-digit year
+            if match:
+                week_num = match.group(1)
+                new_col = f"wk {week_num}"
+                new_cols.append(new_col)
+            else:
+                new_cols.append(col)
+        else:
+            new_cols.append(col)
+    df.columns = new_cols
     return df
 
 # --- Upload and select two sheets from Fluctuation Report
@@ -109,6 +128,8 @@ if speedi_file:
 
         # Reorder dataframe columns
         speedi_df_organized = speedi_df_organized[final_cols]
+
+        speedi_df_organized = rename_quantity_week_columns(speedi_df_organized)
 
         st.markdown("### ✅ SPEEDI Data Organized (Matching Last Week on Top)")
         st.dataframe(speedi_df_organized.head())
