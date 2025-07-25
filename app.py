@@ -201,15 +201,161 @@ if delivery_file:
         st.dataframe(Flux_Calc_df)
 
 
-        # Get all week columns starting with 'wk '
         week_columns = [col for col in speedi_df_organized.columns if col.startswith('wk ')]
 
-        # Streamlit selectbox to choose one of these weeks
-        selected_week = st.selectbox("Select a week to view", week_columns)
+        # 2. Sort week columns numerically by their week number
+        # week_columns = sorted(week_columns, key=lambda x: int(x.split(' ')[1]))
 
+        # 3. Show only these weeks in the selectbox — no repeats, no extras
+        selected_week = st.selectbox("Select starting week", week_columns)
+
+        # Now selected_week will always be one of the actual columns from your data.
+
+        # 4. Use selected_week to filter or calculate differences:
+        #    For example, select all weeks >= selected_week
+        # start_index = week_columns.index(selected_week)
+        # selected_weeks_range = week_columns[start_index:]
+        # # Step 2: Select the week from Streamlit dropdown
+        # # selected_week = st.selectbox("Select a starting week", week_columns)
+
+        # # Step 3: Find index of selected week in the sorted list
+        # # start_idx = week_columns.index(selected_week)
+
+        # # Step 4: Define the weeks range from selected week to the end
+        # # selected_weeks_range = week_columns[start_idx:]
+
+        # # Step 5: Prepare last_week_df and speedi_df_organized for the operation
+        # # Make sure 'Material' columns are string and stripped
+        # # Make sure 'Material' columns are string and stripped (to align keys correctly)
+        # last_week_df['Material'] = last_week_df['Material'].astype(str).str.strip()
+        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str).str.strip()
+
+        # # selected_weeks_range is a list of columns starting from selected_week, e.g. ['wk31', 'wk32', 'wk33', ...]
+        # # Make sure you have it sorted and filtered as needed before this step
+
+        # # Set index on 'Material' for alignment and slicing only selected weeks
+        # last_week_weeks = last_week_df.set_index('Material')[selected_weeks_range]
+        # speedi_weeks = speedi_df_organized.set_index('Material')[selected_weeks_range]
+
+        # # Calculate difference for every material and week
+        # # This subtracts speedi data from last_week data
+        # diff_weeks = last_week_weeks.subtract(speedi_weeks, fill_value=0)
+
+        # Find the starting index of the selected week
+        # Step 3: Weeks to process from selected week onward
+        start_idx = week_columns.index(selected_week)
+        weeks_to_process = week_columns[start_idx:]
+
+        # st.markdown("### weeks_to_process")
+        # st.dataframe(weeks_to_process)
+        # Ensure 'Material' columns are clean and set as index for both DataFrames
+        last_week_df['Material'] = last_week_df['Material'].apply(clean_material_id)
+        speedi_df_organized['Material'] = speedi_df_organized['Material'].apply(clean_material_id)
+
+        last_week_indexed = last_week_df.set_index('Material')
+        speedi_indexed = speedi_df_organized.set_index('Material')
+
+        # Only keep the weeks_to_process columns (plus 'Material' as index)
+        last_week_weeks = last_week_indexed[weeks_to_process]
+        speedi_weeks = speedi_indexed[weeks_to_process]
+
+        # Align indexes (materials) for subtraction
+        last_week_weeks, speedi_weeks = last_week_weeks.align(speedi_weeks, join='outer', fill_value=0)
+
+        # Calculate the difference: (speedi - last_week) for each material and week
+        diff_weeks = speedi_weeks.subtract(last_week_weeks, fill_value=0)
+
+        # Reset index to bring 'Material' back as a column
+        diff_weeks = diff_weeks.reset_index()
+
+        Flux_Calc_df = Flux_Calc_df.merge(
+            diff_weeks,
+            on='Material',
+            how='left'
+        )
+
+        # Optional: Fill NaN in new week columns with 0
+        Flux_Calc_df[weeks_to_process] = Flux_Calc_df[weeks_to_process].fillna(0)
+
+        st.markdown("### 📊 Flux_Calc_df with Weekly Differences")
+        st.dataframe(Flux_Calc_df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # # Prepare 'Material' columns
+        # last_week_df['Material'] = last_week_df['Material'].astype(str)
+        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str)
+
+        # # Set index on Material for easier access
+        # last_week_indexed = last_week_df.set_index('Material')
+        # print('last week index',last_week_indexed)
+        # speedi_indexed = speedi_df_organized.set_index('Material')
+        # print('new week index ',speedi_indexed)
+
+        # # Create empty DataFrame to collect differences
+        # diff_data = pd.DataFrame()
+        # diff_data['Material'] = last_week_df['Material'].unique()  # all materials
+
+        # # for wk in weeks_to_process:
+        # #     # Calculate difference series: last_week - speedi
+        # #     diff_series = last_week_indexed[wk].subtract(speedi_indexed[wk], fill_value=0)
+        # #     diff_series.name = wk  # name the series with the week
+            
+        # #     # Reset index to get 'Material' back and merge or join
+        # #     diff_df = diff_series.reset_index()
+            
+        # #     if diff_data.empty or 'Material' not in diff_data:
+        # #         diff_data = diff_df
+        # #     else:
+        # #         # Merge the new week difference column into diff_data on 'Material'
+        # #         diff_data = diff_data.merge(diff_df, on='Material', how='outer')
+
+
+
+
+
+        # diff_dict = {'Material': last_week_df['Material'].unique()}
+
+        # for wk in weeks_to_process:
+        #     diff_series = last_week_indexed[wk].subtract(speedi_indexed[wk], fill_value=0)
+        #     # diff_dict[wk] = diff_series.reindex(diff_dict['Material']).fillna(0).values  
+
+        # diff_data = pd.DataFrame(diff_series)
         
+        # st.markdown(f"### diff_data")
+        # st.dataframe(diff_data)
+        # # # Now merge this diff_data with Flux_Calc_df on 'Material'
+        # # Flux_Calc_df = Flux_Calc_df.merge(diff_data, on='Material', how='left')
 
-        # # Optionally, update speedi_df_organized to include this delivery qty column
-        # speedi_df_organized['Delivery Qty'] = Flux_Calc_df['Qty in unit of entry'].values
+        # # # Fill any NaN with 0
+        # # Flux_Calc_df[weeks_to_process] = Flux_Calc_df[weeks_to_process].fillna(0)
+
+        # # st.markdown(f"### Differences per week from {selected_week} onwards (last_week_df - speedi_df_organized)")
+        # # st.dataframe(Flux_Calc_df)
 
 
