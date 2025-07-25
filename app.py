@@ -280,6 +280,20 @@ if delivery_file:
         st.markdown("### 📊 Flux_Calc_df with Weekly Differences")
         st.dataframe(Flux_Calc_df)
 
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            last_week_df.to_excel(writer, index=False, sheet_name='LastWeek')
+            speedi_df_organized.to_excel(writer, index=False, sheet_name='CurrentWeek')
+            Flux_Calc_df.to_excel(writer, index=False, sheet_name='Fluctuation (pcs)')
+        output.seek(0)
+
+        st.download_button(
+            label="📥 Download Fluctuation Workbook",
+            data=output,
+            file_name="Fluctuation_Analysis.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
 
 
 
