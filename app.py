@@ -173,16 +173,17 @@ if delivery_file:
     st.markdown("### ⚙️ delivery_df Data Prepared")
     st.dataframe(delivery_df.head())
     if delivery_df is not None and speedi_df_organized is not None:
-
-        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str)
-        # delivery_df['Material'] = delivery_df['Material'].astype(str)
-
+        # Clean material IDs on both dataframes (your existing helper)
         speedi_df_organized['Material'] = speedi_df_organized['Material'].apply(clean_material_id)
         delivery_df['Material'] = delivery_df['Material'].apply(clean_material_id)
-        # Create a DataFrame with all materials in the order of speedi_df_organized
-        Flux_Calc_df = speedi_df_organized[['Material']].copy()
 
-        # Merge delivery quantities onto this DataFrame
+        # Define ordered columns as before
+        ordered_cols = ['Sales document', 'Name sold-to party', 'Material', 'Project']
+
+        # Start Flux_Calc_df by copying those columns from speedi_df_organized (preserves order)
+        Flux_Calc_df = speedi_df_organized[ordered_cols].copy()
+
+        # Merge delivery quantities onto this DataFrame by 'Material'
         Flux_Calc_df = Flux_Calc_df.merge(
             delivery_df[['Material', 'Qty in unit of entry']],
             on='Material',
@@ -192,8 +193,19 @@ if delivery_file:
         # Fill missing delivery quantities with 0
         Flux_Calc_df['Qty in unit of entry'] = Flux_Calc_df['Qty in unit of entry'].fillna(0)
 
-        st.markdown("### 📦 Delivery Quantities in SPEEDI Order")
+        # Final column order: ordered_cols + delivery qty column
+        final_cols = ordered_cols + ['Qty in unit of entry']
+        Flux_Calc_df = Flux_Calc_df[final_cols]
+
+        st.markdown("### 📦 Delivery Quantities in SPEEDI Order with Metadata")
         st.dataframe(Flux_Calc_df)
+
+
+        # Get all week columns starting with 'wk '
+        week_columns = [col for col in speedi_df_organized.columns if col.startswith('wk ')]
+
+        # Streamlit selectbox to choose one of these weeks
+        selected_week = st.selectbox("Select a week to view", week_columns)
 
         
 
