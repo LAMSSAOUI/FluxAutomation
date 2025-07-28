@@ -206,23 +206,6 @@ if delivery_file:
 
         selected_week = st.selectbox("Select starting week", week_columns)
 
-
-# Deficit Calculation
-        # selected_week_idx = week_columns.index(selected_week)
-        #  # Weeks between last week and selected week (exclusive)
-        # demand_weeks = week_columns[:selected_week_idx]  # weeks before selected_week
-
-        # # Calculate sum of demand for each material between last week and selected week
-        # speedi_demand_sum = speedi_df_organized.set_index('Material')[demand_weeks].sum(axis=1) if demand_weeks else pd.Series(0, index=speedi_df_organized['Material'])
-
-        # # Map current week and last week deficit for each material
-        # current_week_vals = speedi_df_organized.set_index('Material')[selected_week]
-        # last_week_deficit_vals = last_week_df.set_index('Material')[selected_week]
-
-        # st.markdown("### current_week_vals")
-        # st.dataframe(current_week_vals)
-        # st.markdown("### last_week_deficit_vals")
-        # st.dataframe(last_week_deficit_vals)
        
         start_idx = week_columns.index(selected_week)
         weeks_to_process = week_columns[start_idx:]
@@ -253,6 +236,50 @@ if delivery_file:
 
         # Optional: Fill NaN in new week columns with 0
         Flux_Calc_df[weeks_to_process] = Flux_Calc_df[weeks_to_process].fillna(0)
+
+
+        
+        # Find the previous week column
+        selected_week_idx = week_columns.index(selected_week)  
+        prev_week = week_columns[selected_week_idx - 1]
+ 
+
+
+        current_deficit = speedi_df_organized.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
+        st.markdown("### 📊 current_deficit")
+        st.dataframe(current_deficit)
+        last_deficit = last_week_df.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
+        st.markdown("### 📊 last_deficit")
+        st.dataframe(last_deficit)
+        last_week_demand = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
+        st.markdown("### 📊 last_week_demand")
+        st.dataframe(last_week_demand)
+
+
+
+        # # deficit fluctuatuion 
+        # current_deficit = speedi_df_organized.set_index('Material')[selected_week].groupby(level=0).sum()
+        
+        # last_deficit = last_week_df.set_index('Material')[selected_week].groupby(level=0).sum()
+        
+        # last_week_demand = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
+   
+        Flux_Calc_df['Deficit quantity'] = (
+            Flux_Calc_df['Material'].map(current_deficit).fillna(0)
+            - Flux_Calc_df['Material'].map(last_deficit).fillna(0)
+            + Flux_Calc_df['Qty in unit of entry']
+            - Flux_Calc_df['Material'].map(last_week_demand).fillna(0)
+        )
+
+
+        cols = list(Flux_Calc_df.columns)
+        qty_idx = cols.index('Qty in unit of entry')
+        # Remove 'Deficit quantity' if already present
+        cols.remove('Deficit quantity')
+        # Insert after 'Qty in unit of entry'
+        cols.insert(qty_idx + 1, 'Deficit quantity')
+        Flux_Calc_df = Flux_Calc_df[cols]
+    
 
         st.markdown("### 📊 Fluctuation File")
         st.dataframe(Flux_Calc_df)
