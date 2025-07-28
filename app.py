@@ -296,6 +296,8 @@ if delivery_file:
 
 
         fluct_pct_df = Flux_Calc_df[['Sales document', 'Name sold-to party', 'Material', 'Project']].copy()
+
+        fluct_pct_df = fluct_pct_df.rename(columns={'Project': 'Material type'})
         for week in weeks_to_process:
             last_week_vals = last_week_indexed[week] if week in last_week_indexed.columns else pd.Series(0, index=last_week_indexed.index)
             curr_week_vals = speedi_indexed[week] if week in speedi_indexed.columns else pd.Series(0, index=speedi_indexed.index)
@@ -328,17 +330,17 @@ if delivery_file:
                 deficit_pct.append(0)
             else:
                 deficit_pct.append(deficit / denominator)
-        fluct_pct_df['Deficit Pourcentage'] = deficit_pct
+        fluct_pct_df['Deficit quantity'] = deficit_pct
 
         # Reorder columns to put 'Deficit Pourcentage' after 'Project'
         cols = list(fluct_pct_df.columns)
-        cols.remove('Deficit Pourcentage')
-        proj_idx = cols.index('Project')
-        cols.insert(proj_idx + 1, 'Deficit Pourcentage')
+        cols.remove('Deficit quantity')
+        proj_idx = cols.index('Material type')
+        cols.insert(proj_idx + 1, 'Deficit quantity')
         fluct_pct_df = fluct_pct_df[cols + [col for col in fluct_pct_df.columns if col not in cols]]
 
 
-        percent_cols = list(weeks_to_process) + ['Deficit Pourcentage']
+        percent_cols = list(weeks_to_process) + ['Deficit quantity']
         for col in percent_cols:
             if col in fluct_pct_df.columns:
                 fluct_pct_df[col] = pd.to_numeric(fluct_pct_df[col], errors='coerce')
@@ -422,72 +424,72 @@ if delivery_file:
                 })
 
 
-            green_format = workbook.add_format({'bg_color': '#AAAE7F'})  # > 20%
-            purple_format = workbook.add_format({'bg_color': '#9000B3'})  # between -20% and 20%
-            red_format = workbook.add_format({'bg_color': '#F0544F'})    # < -20%
+            # green_format = workbook.add_format({'bg_color': '#AAAE7F'})  # > 20%
+            # purple_format = workbook.add_format({'bg_color': '#9000B3'})  # between -20% and 20%
+            # red_format = workbook.add_format({'bg_color': '#F0544F'})    # < -20%
 
-            fluct_pct_ws = writer.sheets['Fluctuation (Pourcentage)']
-            start_row = 1
-            end_row = len(fluct_pct_df)
+            # fluct_pct_ws = writer.sheets['Fluctuation (Pourcentage)']
+            # start_row = 1
+            # end_row = len(fluct_pct_df)
 
-            # Create number formats that include percentage symbol
-            green_format = workbook.add_format({
-                'bg_color': '#AAAE7F',
-                'num_format': '0.00%'
-            })
-            purple_format = workbook.add_format({
-                'bg_color': '#9000B3',
-                'num_format': '0.00%'
-            })
-            red_format = workbook.add_format({
-                'bg_color': '#F0544F',
-                'num_format': '0.00%'
-            })
+            # # Create number formats that include percentage symbol
+            # green_format = workbook.add_format({
+            #     'bg_color': '#AAAE7F',
+            #     'num_format': '0.00%'
+            # })
+            # purple_format = workbook.add_format({
+            #     'bg_color': '#9000B3',
+            #     'num_format': '0.00%'
+            # })
+            # red_format = workbook.add_format({
+            #     'bg_color': '#F0544F',
+            #     'num_format': '0.00%'
+            # })
 
-            percent_cols = list(weeks_to_process) + ['Deficit Pourcentage']
-            for col in percent_cols:
-                if col in fluct_pct_df.columns:
-                    col_idx = fluct_pct_df.columns.get_loc(col)
+            # percent_cols = list(weeks_to_process) + ['Deficit Pourcentage']
+            # for col in percent_cols:
+            #     if col in fluct_pct_df.columns:
+            #         col_idx = fluct_pct_df.columns.get_loc(col)
                     
-                    # Convert percentage strings back to numbers for Excel
-                    fluct_pct_df[col] = fluct_pct_df[col].str.rstrip('%').astype(float) / 100
+            #         # Convert percentage strings back to numbers for Excel
+            #         fluct_pct_df[col] = fluct_pct_df[col].str.rstrip('%').astype(float) / 100
                     
-                    # Apply conditional formatting using decimal values
-                    # > 20%: Green
-                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
-                        'type': 'cell',
-                        'criteria': '>',
-                        'value': 20,
-                        'format': green_format
-                    })
+            #         # Apply conditional formatting using decimal values
+            #         # > 20%: Green
+            #         fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+            #             'type': 'cell',
+            #             'criteria': '>',
+            #             'value': 20,
+            #             'format': green_format
+            #         })
                     
-                    # Between 0% and 20%: Purple
-                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
-                        'type': 'cell',
-                        'criteria': 'between',
-                        'minimum': 0,
-                        'maximum': 20,
-                        'format': purple_format
-                    })
+            #         # Between 0% and 20%: Purple
+            #         fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+            #             'type': 'cell',
+            #             'criteria': 'between',
+            #             'minimum': 0,
+            #             'maximum': 20,
+            #             'format': purple_format
+            #         })
                     
-                    # Between -20% and 0%: Purple
-                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
-                        'type': 'cell',
-                        'criteria': 'between',
-                        'minimum': -20,
-                        'maximum': 0,
-                        'format': purple_format
-                    })
+            #         # Between -20% and 0%: Purple
+            #         fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+            #             'type': 'cell',
+            #             'criteria': 'between',
+            #             'minimum': -20,
+            #             'maximum': 0,
+            #             'format': purple_format
+            #         })
                     
-                    # < -20%: Red
-                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
-                        'type': 'cell',
-                        'criteria': '<',
-                        'value': -20,
-                        'format': red_format
-                    })
+            #         # < -20%: Red
+            #         fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+            #             'type': 'cell',
+            #             'criteria': '<',
+            #             'value': -20,
+            #             'format': red_format
+            #         })
 
-
+        
         output.seek(0)
 
         st.download_button(
