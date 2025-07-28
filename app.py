@@ -284,12 +284,120 @@ if delivery_file:
         st.markdown("### 📊 Fluctuation File")
         st.dataframe(Flux_Calc_df)
 
+        # fluct_pct_df = Flux_Calc_df[['Material']].copy()
+        # for week in weeks_to_process:
+        #     last_week_vals = last_week_indexed[week] if week in last_week_indexed.columns else pd.Series(0, index=last_week_indexed.index)
+        #     curr_week_vals = speedi_indexed[week] if week in speedi_indexed.columns else pd.Series(0, index=speedi_indexed.index)
+        #     # Align indexes
+        #     last_week_vals, curr_week_vals = last_week_vals.align(curr_week_vals, join='outer', fill_value=0)
+        #     # Compute percentage fluctuation
+        #     pct = []
+        #     for mat in Flux_Calc_df['Material']:
+        #         lw = last_week_vals.get(mat, 0)
+        #         cw = curr_week_vals.get(mat, 0)
+        #         # If lw or cw is a Series (duplicate index), sum them
+        #         if isinstance(lw, pd.Series):
+        #             lw = lw.sum()
+        #         if isinstance(cw, pd.Series):
+        #             cw = cw.sum()
+        #         if lw == 0:
+        #             pct.append(1 if cw > 0 else 0)
+        #         else:
+        #             pct.append((cw - lw) / lw)
+        #     fluct_pct_df[week] = pct
+
+
+        # # Calculate last_week_demand and last_deficit for each material
+        # last_week_demand_series = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
+        # last_deficit_series = last_week_df.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
+        # deficit_quantity_series = Flux_Calc_df.set_index('Material')['Deficit quantity']
+
+        # # Compute deficit pourcentage for each material
+        # deficit_pct = []
+        # for mat in Flux_Calc_df['Material']:
+        #     lw_demand = last_week_demand_series.get(mat, 0)
+        #     lw_deficit = last_deficit_series.get(mat, 0)
+        #     deficit = deficit_quantity_series.get(mat, 0)
+        #     denominator = lw_demand + lw_deficit
+        #     if denominator == 0:
+        #         deficit_pct.append(0)
+        #     else:
+        #         deficit_pct.append(deficit / denominator)
+        # fluct_pct_df['Deficit Pourcentage'] = deficit_pct
+
+
+        fluct_pct_df = Flux_Calc_df[['Sales document', 'Name sold-to party', 'Material', 'Project']].copy()
+        for week in weeks_to_process:
+            last_week_vals = last_week_indexed[week] if week in last_week_indexed.columns else pd.Series(0, index=last_week_indexed.index)
+            curr_week_vals = speedi_indexed[week] if week in speedi_indexed.columns else pd.Series(0, index=speedi_indexed.index)
+            last_week_vals, curr_week_vals = last_week_vals.align(curr_week_vals, join='outer', fill_value=0)
+            pct = []
+            for mat in Flux_Calc_df['Material']:
+                lw = last_week_vals.get(mat, 0)
+                cw = curr_week_vals.get(mat, 0)
+                if isinstance(lw, pd.Series): lw = lw.sum()
+                if isinstance(cw, pd.Series): cw = cw.sum()
+                if lw == 0:
+                    pct.append(1 if cw > 0 else 0)
+                else:
+                    pct.append((cw - lw) / lw)
+            # Format as percentage for Excel (not string)
+            fluct_pct_df[week] = pct
+
+
+        fluct_pct_df = Flux_Calc_df[['Sales document', 'Name sold-to party', 'Material', 'Project']].copy()
+        for week in weeks_to_process:
+            last_week_vals = last_week_indexed[week] if week in last_week_indexed.columns else pd.Series(0, index=last_week_indexed.index)
+            curr_week_vals = speedi_indexed[week] if week in speedi_indexed.columns else pd.Series(0, index=speedi_indexed.index)
+            last_week_vals, curr_week_vals = last_week_vals.align(curr_week_vals, join='outer', fill_value=0)
+            pct = []
+            for mat in Flux_Calc_df['Material']:
+                lw = last_week_vals.get(mat, 0)
+                cw = curr_week_vals.get(mat, 0)
+                if isinstance(lw, pd.Series): lw = lw.sum()
+                if isinstance(cw, pd.Series): cw = cw.sum()
+                if lw == 0:
+                    pct.append(1 if cw > 0 else 0)
+                else:
+                    pct.append((cw - lw) / lw)
+            fluct_pct_df[week] = pct
+
+        # Calculate last_week_demand and last_deficit for each material
+        last_week_demand_series = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
+        last_deficit_series = last_week_df.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
+        deficit_quantity_series = Flux_Calc_df.set_index('Material')['Deficit quantity']
+
+        # Compute deficit pourcentage for each material
+        deficit_pct = []
+        for mat in Flux_Calc_df['Material']:
+            lw_demand = last_week_demand_series.get(mat, 0)
+            lw_deficit = last_deficit_series.get(mat, 0)
+            deficit = deficit_quantity_series.get(mat, 0)
+            denominator = lw_demand + lw_deficit
+            if denominator == 0:
+                deficit_pct.append(0)
+            else:
+                deficit_pct.append(deficit / denominator)
+        fluct_pct_df['Deficit Pourcentage'] = deficit_pct
+
+        # Reorder columns to put 'Deficit Pourcentage' after 'Project'
+        cols = list(fluct_pct_df.columns)
+        cols.remove('Deficit Pourcentage')
+        proj_idx = cols.index('Project')
+        cols.insert(proj_idx + 1, 'Deficit Pourcentage')
+        fluct_pct_df = fluct_pct_df[cols + [col for col in fluct_pct_df.columns if col not in cols]]
+
+        st.markdown("### 📊 fluct_pct_df ")
+        st.dataframe(fluct_pct_df)
+
         output = io.BytesIO()
+        # ...existing code for Excel export...
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             # Write sheets
             last_week_df.to_excel(writer, index=False, sheet_name='LastWeek')
             speedi_df_organized.to_excel(writer, index=False, sheet_name='CurrentWeek')
             Flux_Calc_df.to_excel(writer, index=False, sheet_name='Fluctuation (pcs)')
+            fluct_pct_df.to_excel(writer, index=False, sheet_name='Fluctuation (Pourcentage)')
 
             workbook  = writer.book
 
@@ -304,17 +412,17 @@ if delivery_file:
             tab_colors = {
                 'LastWeek': '#B7B7B7',         # Gray
                 'CurrentWeek': '#A9D08E',      # Light green
-                'Fluctuation (pcs)': '#FFD966' # Light yellow
+                'Fluctuation (pcs)': '#FFD966', # Light yellow
+                'Fluctuation (Pourcentage)': '#C6E0B4' # Light greenish
             }
 
             # Apply header style and tab color to all sheets
             for sheet_name, tab_color in tab_colors.items():
                 worksheet = writer.sheets[sheet_name]
-                # Set tab color
                 worksheet.set_tab_color(tab_color)
-                # Write headers with style
                 columns = (
                     Flux_Calc_df.columns if sheet_name == 'Fluctuation (pcs)' else
+                    fluct_pct_df.columns if sheet_name == 'Fluctuation (Pourcentage)' else
                     last_week_df.columns if sheet_name == 'LastWeek' else
                     speedi_df_organized.columns
                 )
