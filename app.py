@@ -246,15 +246,9 @@ if delivery_file:
 
 
         current_deficit = speedi_df_organized.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
-        st.markdown("### 📊 current_deficit")
-        st.dataframe(current_deficit)
         last_deficit = last_week_df.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
-        st.markdown("### 📊 last_deficit")
-        st.dataframe(last_deficit)
         last_week_demand = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
-        st.markdown("### 📊 last_week_demand")
-        st.dataframe(last_week_demand)
-
+ 
 
 
         # # deficit fluctuatuion 
@@ -278,53 +272,9 @@ if delivery_file:
         cols.remove('Deficit quantity')
         # Insert after 'Qty in unit of entry'
         cols.insert(qty_idx + 1, 'Deficit quantity')
-        Flux_Calc_df = Flux_Calc_df[cols]
-    
+        Flux_Calc_df = Flux_Calc_df[cols]    
 
-        st.markdown("### 📊 Fluctuation File")
-        st.dataframe(Flux_Calc_df)
-
-        # fluct_pct_df = Flux_Calc_df[['Material']].copy()
-        # for week in weeks_to_process:
-        #     last_week_vals = last_week_indexed[week] if week in last_week_indexed.columns else pd.Series(0, index=last_week_indexed.index)
-        #     curr_week_vals = speedi_indexed[week] if week in speedi_indexed.columns else pd.Series(0, index=speedi_indexed.index)
-        #     # Align indexes
-        #     last_week_vals, curr_week_vals = last_week_vals.align(curr_week_vals, join='outer', fill_value=0)
-        #     # Compute percentage fluctuation
-        #     pct = []
-        #     for mat in Flux_Calc_df['Material']:
-        #         lw = last_week_vals.get(mat, 0)
-        #         cw = curr_week_vals.get(mat, 0)
-        #         # If lw or cw is a Series (duplicate index), sum them
-        #         if isinstance(lw, pd.Series):
-        #             lw = lw.sum()
-        #         if isinstance(cw, pd.Series):
-        #             cw = cw.sum()
-        #         if lw == 0:
-        #             pct.append(1 if cw > 0 else 0)
-        #         else:
-        #             pct.append((cw - lw) / lw)
-        #     fluct_pct_df[week] = pct
-
-
-        # # Calculate last_week_demand and last_deficit for each material
-        # last_week_demand_series = last_week_df.set_index('Material')[prev_week].groupby(level=0).sum()
-        # last_deficit_series = last_week_df.set_index('Material')['Deficit quantity'].groupby(level=0).sum()
-        # deficit_quantity_series = Flux_Calc_df.set_index('Material')['Deficit quantity']
-
-        # # Compute deficit pourcentage for each material
-        # deficit_pct = []
-        # for mat in Flux_Calc_df['Material']:
-        #     lw_demand = last_week_demand_series.get(mat, 0)
-        #     lw_deficit = last_deficit_series.get(mat, 0)
-        #     deficit = deficit_quantity_series.get(mat, 0)
-        #     denominator = lw_demand + lw_deficit
-        #     if denominator == 0:
-        #         deficit_pct.append(0)
-        #     else:
-        #         deficit_pct.append(deficit / denominator)
-        # fluct_pct_df['Deficit Pourcentage'] = deficit_pct
-
+     
 
         fluct_pct_df = Flux_Calc_df[['Sales document', 'Name sold-to party', 'Material', 'Project']].copy()
         for week in weeks_to_process:
@@ -387,8 +337,15 @@ if delivery_file:
         cols.insert(proj_idx + 1, 'Deficit Pourcentage')
         fluct_pct_df = fluct_pct_df[cols + [col for col in fluct_pct_df.columns if col not in cols]]
 
-        st.markdown("### 📊 fluct_pct_df ")
-        st.dataframe(fluct_pct_df)
+
+        percent_cols = list(weeks_to_process) + ['Deficit Pourcentage']
+        for col in percent_cols:
+            if col in fluct_pct_df.columns:
+                fluct_pct_df[col] = pd.to_numeric(fluct_pct_df[col], errors='coerce')
+                fluct_pct_df[col] = (fluct_pct_df[col] * 100).round(2).astype(str) + '%'
+
+        st.markdown("### 📊 Fluctuation File")
+        st.dataframe(Flux_Calc_df)
 
         output = io.BytesIO()
         # ...existing code for Excel export...
@@ -401,8 +358,20 @@ if delivery_file:
 
             workbook  = writer.book
 
+
+            worksheet = writer.sheets['Fluctuation (pcs)']
+            worksheet.activate()
+            worksheet.set_first_sheet()
+
             # Header format: gray background, bold
-            header_format = workbook.add_format({'bold': True, 'bg_color': '#B7B7B7', 'font_color': 'black'})
+            header_format = workbook.add_format({
+                'bg_color': '#B7B7B7',
+                'font_color': 'black',
+                'align': 'center',
+                'valign': 'vcenter',
+                'text_wrap': True
+            })
+            header_height = 22
 
             # Week value formats
             yellow_bold = workbook.add_format({'bg_color': '#FFFF00', 'bold': True})
@@ -410,11 +379,13 @@ if delivery_file:
 
             # Sheet tab colors (choose your own)
             tab_colors = {
-                'LastWeek': '#B7B7B7',         # Gray
-                'CurrentWeek': '#A9D08E',      # Light green
-                'Fluctuation (pcs)': '#FFD966', # Light yellow
-                'Fluctuation (Pourcentage)': '#C6E0B4' # Light greenish
+                'LastWeek': '#CBF3F0',         # Gray
+                'CurrentWeek': '#FFBF69',      # Light green
+                'Fluctuation (pcs)': '#9D69A3', # Light yellow
+                'Fluctuation (Pourcentage)': '#E85D75' # Light greenish
             }
+
+
 
             # Apply header style and tab color to all sheets
             for sheet_name, tab_color in tab_colors.items():
@@ -449,6 +420,73 @@ if delivery_file:
                     'value': 0,
                     'format': orange_yellow
                 })
+
+
+            green_format = workbook.add_format({'bg_color': '#AAAE7F'})  # > 20%
+            purple_format = workbook.add_format({'bg_color': '#9000B3'})  # between -20% and 20%
+            red_format = workbook.add_format({'bg_color': '#F0544F'})    # < -20%
+
+            fluct_pct_ws = writer.sheets['Fluctuation (Pourcentage)']
+            start_row = 1
+            end_row = len(fluct_pct_df)
+
+            # Create number formats that include percentage symbol
+            green_format = workbook.add_format({
+                'bg_color': '#AAAE7F',
+                'num_format': '0.00%'
+            })
+            purple_format = workbook.add_format({
+                'bg_color': '#9000B3',
+                'num_format': '0.00%'
+            })
+            red_format = workbook.add_format({
+                'bg_color': '#F0544F',
+                'num_format': '0.00%'
+            })
+
+            percent_cols = list(weeks_to_process) + ['Deficit Pourcentage']
+            for col in percent_cols:
+                if col in fluct_pct_df.columns:
+                    col_idx = fluct_pct_df.columns.get_loc(col)
+                    
+                    # Convert percentage strings back to numbers for Excel
+                    fluct_pct_df[col] = fluct_pct_df[col].str.rstrip('%').astype(float) / 100
+                    
+                    # Apply conditional formatting using decimal values
+                    # > 20%: Green
+                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                        'type': 'cell',
+                        'criteria': '>',
+                        'value': 20,
+                        'format': green_format
+                    })
+                    
+                    # Between 0% and 20%: Purple
+                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                        'type': 'cell',
+                        'criteria': 'between',
+                        'minimum': 0,
+                        'maximum': 20,
+                        'format': purple_format
+                    })
+                    
+                    # Between -20% and 0%: Purple
+                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                        'type': 'cell',
+                        'criteria': 'between',
+                        'minimum': -20,
+                        'maximum': 0,
+                        'format': purple_format
+                    })
+                    
+                    # < -20%: Red
+                    fluct_pct_ws.conditional_format(start_row, col_idx, end_row, col_idx, {
+                        'type': 'cell',
+                        'criteria': '<',
+                        'value': -20,
+                        'format': red_format
+                    })
+
 
         output.seek(0)
 
