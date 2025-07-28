@@ -271,7 +271,7 @@ if delivery_file:
 
             # Week value formats
             yellow_bold = workbook.add_format({'bg_color': '#FFFF00', 'bold': True})
-            yellow_light = workbook.add_format({'bg_color': '#FFFACD'})  # LemonChiffon (light yellow)
+            orange_yellow = workbook.add_format({'bg_color': '#FFC000'})
 
             # Sheet tab colors (choose your own)
             tab_colors = {
@@ -312,7 +312,7 @@ if delivery_file:
                     'type': 'cell',
                     'criteria': '<',
                     'value': 0,
-                    'format': yellow_light
+                    'format': orange_yellow
                 })
 
         output.seek(0)
@@ -324,82 +324,5 @@ if delivery_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # # Prepare 'Material' columns
-        # last_week_df['Material'] = last_week_df['Material'].astype(str)
-        # speedi_df_organized['Material'] = speedi_df_organized['Material'].astype(str)
-
-        # # Set index on Material for easier access
-        # last_week_indexed = last_week_df.set_index('Material')
-        # print('last week index',last_week_indexed)
-        # speedi_indexed = speedi_df_organized.set_index('Material')
-        # print('new week index ',speedi_indexed)
-
-        # # Create empty DataFrame to collect differences
-        # diff_data = pd.DataFrame()
-        # diff_data['Material'] = last_week_df['Material'].unique()  # all materials
-
-        # # for wk in weeks_to_process:
-        # #     # Calculate difference series: last_week - speedi
-        # #     diff_series = last_week_indexed[wk].subtract(speedi_indexed[wk], fill_value=0)
-        # #     diff_series.name = wk  # name the series with the week
-            
-        # #     # Reset index to get 'Material' back and merge or join
-        # #     diff_df = diff_series.reset_index()
-            
-        # #     if diff_data.empty or 'Material' not in diff_data:
-        # #         diff_data = diff_df
-        # #     else:
-        # #         # Merge the new week difference column into diff_data on 'Material'
-        # #         diff_data = diff_data.merge(diff_df, on='Material', how='outer')
-
-
-
-
-
-        # diff_dict = {'Material': last_week_df['Material'].unique()}
-
-        # for wk in weeks_to_process:
-        #     diff_series = last_week_indexed[wk].subtract(speedi_indexed[wk], fill_value=0)
-        #     # diff_dict[wk] = diff_series.reindex(diff_dict['Material']).fillna(0).values  
-
-        # diff_data = pd.DataFrame(diff_series)
-        
-        # st.markdown(f"### diff_data")
-        # st.dataframe(diff_data)
-        # # # Now merge this diff_data with Flux_Calc_df on 'Material'
-        # # Flux_Calc_df = Flux_Calc_df.merge(diff_data, on='Material', how='left')
-
-        # # # Fill any NaN with 0
-        # # Flux_Calc_df[weeks_to_process] = Flux_Calc_df[weeks_to_process].fillna(0)
-
-        # # st.markdown(f"### Differences per week from {selected_week} onwards (last_week_df - speedi_df_organized)")
-        # # st.dataframe(Flux_Calc_df)
 
 
